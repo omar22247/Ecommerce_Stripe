@@ -1,0 +1,89 @@
+spring:
+  application:
+    name: ecommerce-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ecommerce_db
+    username: postgres
+    password: your_new_password_here
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+  cloud:
+    openfeign:
+      client:
+        config:
+          payment-service:
+            connect-timeout: 2000
+            read-timeout: 5000
+internal:
+  api-key: ${INTERNAL_API_KEY}
+jwt:
+  secret: erklwcuteruwt4uyq8y87438389*&&*&28*/Q/eqhcquwhriuyct3w
+  access-token-expiration: 90000000
+
+refresh-token-expiration: 604800000
+
+server:
+  port: 8081
+
+springdoc:
+  swagger-ui:
+    persistAuthorization: true
+    tagsSorter: alpha
+    operationsSorter: method
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+payment:
+  currency: usd
+
+resilience4j:
+  retry:
+    instances:
+      paymentService:
+        max-attempts: 3
+        wait-duration: 500ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exceptions:
+          - feign.RetryableException
+          - feign.FeignException$ServiceUnavailable
+        ignore-exceptions:
+          - io.github.resilience4j.circuitbreaker.CallNotPermittedException
+  circuitbreaker:
+    instances:
+      paymentService:
+        sliding-window-type: COUNT_BASED
+        sliding-window-size: 10
+        minimum-number-of-calls: 5
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 30s
+        permitted-number-of-calls-in-half-open-state: 3
+        automatic-transition-from-open-to-half-open-enabled: true
+        register-health-indicator: true
+        allow-health-indicator-to-fail: false
+        record-exceptions:
+          - feign.RetryableException
+          - feign.FeignException$ServiceUnavailable
+          - feign.FeignException$InternalServerError
+          - feign.FeignException$BadGateway
+          - feign.FeignException$GatewayTimeout
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,circuitbreakers,circuitbreakerevents,retries,retryevents
+  endpoint:
+    health:
+      show-details: always
+  health:
+    circuitbreakers:
+      enabled: true
